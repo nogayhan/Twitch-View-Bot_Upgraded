@@ -1,8 +1,11 @@
 package controller;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import service.TwitchUtil;
 import viewbot.ViewBot;
 
@@ -12,13 +15,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class Controller {
+public class ControllerMain {
     private final TwitchUtil twitchUtil = new TwitchUtil();
-    FileChooser fileChooser = new FileChooser();
-    ViewBot viewBot;
-    LinkedBlockingQueue<String> proxyQueue = new LinkedBlockingQueue<>();
+    private static final FileChooser fileChooser = new FileChooser();
+    private ViewBot viewBot;
+    private LinkedBlockingQueue<String> proxyQueue = new LinkedBlockingQueue<>();
 
-    {
+    static {
         fileChooser.setTitle("Choose proxy file");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text Files", "*.txt"));
     }
@@ -33,9 +36,6 @@ public class Controller {
     public TextArea logArea;
 
     @FXML
-    public Button loadProxiesButton;
-
-    @FXML
     private Slider slider;
 
     @FXML
@@ -43,7 +43,6 @@ public class Controller {
 
     @FXML
     private Label viewCount;
-
 
     public void initialize() {
         slider.valueProperty().addListener(((observable, oldValue, newValue) ->
@@ -59,11 +58,6 @@ public class Controller {
     @FXML
     public void resetCount() {
         viewCount.setText("0");
-    }
-
-    @FXML
-    public void changeButton() {
-        startButton.setText("5");
     }
 
     @FXML
@@ -141,19 +135,21 @@ public class Controller {
     }
 
     @FXML
+    private void openConfig() throws IOException {
+        Scene scene = FXMLLoader.load(getClass().getResource("/config.fxml"));
+        Stage stage = new Stage();
+        stage.setTitle("Config");
+        stage.setScene(scene);
+        stage.setResizable(false);
+        stage.show();
+    }
+
+    @FXML
     public void cleanLogArea() {
         logArea.clear();
     }
 
     public Button getStartButton() {
         return startButton;
-    }
-
-    public TextField getChannelNameField() {
-        return channelNameField;
-    }
-
-    public TextArea getLogArea() {
-        return logArea;
     }
 }

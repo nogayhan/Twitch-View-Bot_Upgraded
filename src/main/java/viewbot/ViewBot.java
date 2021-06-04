@@ -1,6 +1,6 @@
 package viewbot;
 
-import controller.Controller;
+import controller.ControllerMain;
 import javafx.application.Platform;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -42,19 +42,19 @@ public class ViewBot {
     private ExecutorService threadPool;
     private LinkedBlockingQueue<String> proxyQueue;
     private String target;
-    private final Controller controller;
+    private final ControllerMain controllerMain;
 
     private int threads;
 
-    public ViewBot(Controller controller, LinkedBlockingQueue<String> proxyQueue, String target) {
-        this.controller = controller;
+    public ViewBot(ControllerMain controllerMain, LinkedBlockingQueue<String> proxyQueue, String target) {
+        this.controllerMain = controllerMain;
         this.proxyQueue = proxyQueue;
         this.target = target;
     }
 
     private void writeToLog(String msg) {
         Platform.runLater(() ->
-                controller.writeToLog(msg)
+                controllerMain.writeToLog(msg)
         );
     }
 
@@ -64,7 +64,7 @@ public class ViewBot {
         for (int i = 0; i < threads; i++) {
             this.threadPool.execute(getExecutable());
         }
-        while (!controller.getStartButton().getText().equals("START")) {
+        while (!controllerMain.getStartButton().getText().equals("START")) {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException e) {
@@ -102,7 +102,7 @@ public class ViewBot {
                     sendView(httpClient, videoSequenceURL);
                     if (!viewWasSent) {
                         viewWasSent = true;
-                        Platform.runLater(controller::addCount);
+                        Platform.runLater(controllerMain::addCount);
                     }
                     Thread.sleep(5000);
                 }
@@ -128,7 +128,7 @@ public class ViewBot {
                 Thread.currentThread().interrupt();
             }
         }
-        Platform.runLater(controller::stopViewBot);
+        Platform.runLater(controllerMain::stopViewBot);
     }
 
 
