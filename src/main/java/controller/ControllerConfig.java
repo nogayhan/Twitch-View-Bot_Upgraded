@@ -1,7 +1,8 @@
 package controller;
 
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.TextField;
 
 public class ControllerConfig {
 
@@ -24,14 +25,34 @@ public class ControllerConfig {
 
 
     @FXML
+    void initialize() {
+        stopAfterHs.setDisable(!stopWhenOffline.isDisable());
+        stopWhenOffline.selectedProperty().addListener((observable, oldValue, newValue) -> stopAfterHs.setDisable(newValue));
+    }
+
+    @FXML
     void saveAllOptions() {
         startWhenLiveValue = startWhenLive.isSelected();
         stopWhenOfflineValue = stopWhenOffline.isSelected();
-        
+
+
         stopAfterHsValue = Integer.parseInt(stopAfterHs.getText());
         repeatEveryHsValue = Integer.parseInt(repeatEveryHs.getText());
-
-        System.out.println(startWhenLiveValue);
     }
 
+    public boolean isStartWhenLiveValue() {
+        return startWhenLiveValue;
+    }
+
+    public boolean isStopWhenOfflineValue() {
+        return stopWhenOfflineValue;
+    }
+
+    public int getStopAfterHsValue() {
+        return stopAfterHsValue;
+    }
+
+    public int getRepeatEveryHsValue() {
+        return repeatEveryHsValue;
+    }
 }
