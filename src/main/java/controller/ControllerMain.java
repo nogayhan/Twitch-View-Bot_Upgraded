@@ -6,7 +6,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import service.TwitchUtil;
 import viewbot.ViewBot;
 
 import java.io.BufferedReader;
@@ -16,7 +15,6 @@ import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class ControllerMain {
-    private final TwitchUtil twitchUtil = new TwitchUtil();
     private static final FileChooser fileChooser = new FileChooser();
     private ViewBot viewBot;
     private LinkedBlockingQueue<String> proxyQueue = new LinkedBlockingQueue<>();
@@ -69,6 +67,7 @@ public class ControllerMain {
     @FXML
     private void start() {
         if (!startButton.getText().equals("START")) {
+            viewBot.stop();
             startButton.setText("START");
         } else {
             if (proxyQueue.isEmpty()) {
@@ -85,29 +84,27 @@ public class ControllerMain {
 
             viewBot = new ViewBot(this, proxyQueue, target);
             viewBot.setThreads(Integer.parseInt(labelViewers.getText()));
-            Thread viewBotThread = new Thread(viewBot::start);
-            viewBotThread.start();
+            Thread prepareToStartThread = new Thread(viewBot::prepareToStart);
             startButton.setText("STOP");
+            prepareToStartThread.start();
+            try {
+                prepareToStartThread.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            Thread startThread = new Thread(viewBot::start);
+            startThread.start();
         }
     }
 
     private boolean isChannelValid(String target) {
-        if (target.isBlank() || target.isEmpty()) {
-            return false;
-        }
-        boolean isChannelLive;
-        try {
-            String channelId = twitchUtil.getChannelId(target);
-            isChannelLive = twitchUtil.isChannelLive(channelId);
-        } catch (Exception e) {
-            return false;
-        }
-        return isChannelLive;
+        return !target.isBlank() && !target.isEmpty();
     }
 
     @FXML
     public void stopViewBot() {
         if (viewBot != null) {
+            startButton.setText("START");
             resetCount();
             cleanLogArea();
             writeToLog("Stopped");
