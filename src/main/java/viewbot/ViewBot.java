@@ -68,11 +68,12 @@ public class ViewBot {
             this.threadPool.execute(getExecutable());
         }
         try {
+            String channelId = TwitchUtil.getChannelId(target);
             if (!Config.stopWhenOfflineValue) {
                 Thread.sleep((long) Config.stopAfterHsValue * 1000 * 60 * 60);
             } else {
-                while (controllerMain.getStartButton().getText().equals("START")) {
-                    if (!TwitchUtil.isChannelLive(target)) break;
+                while (!controllerMain.getStartButton().getText().equals("START")) {
+                    if (!TwitchUtil.isChannelLive(channelId)) break;
                     Thread.sleep(2000);
                 }
             }
