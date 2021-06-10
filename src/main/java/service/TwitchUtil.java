@@ -20,17 +20,19 @@ public class TwitchUtil {
     private static final String CHANNEL_INFO = "https://api.twitch.tv/kraken/users?login=";
     private static final String CHANNEL_STREAM = "https://api.twitch.tv/kraken/streams/";
 
-    private final HttpClient httpClient = new HttpClient();
+    private static final HttpClient httpClient = new HttpClient();
 
 
-    public HttpGet createHttpGet(String url) {
+    private TwitchUtil() {}
+
+    public static HttpGet createHttpGet(String url) {
         HttpGet httpGet = new HttpGet(url);
         httpGet.addHeader(HttpHeaders.ACCEPT, "application/vnd.twitchtv.v5+json");
         httpGet.addHeader(CLIENT_ID_HEADER_NAME, CLIENT_ID);
         return httpGet;
     }
 
-    public String getChannelId(String login) throws IOException, JSONException {
+    public static String getChannelId(String login) throws IOException, JSONException {
         HttpGet httpGet = createHttpGet(CHANNEL_INFO + login);
         CloseableHttpResponse response = httpClient.client.execute(httpGet);
         HttpEntity entity = response.getEntity();
@@ -47,7 +49,7 @@ public class TwitchUtil {
         return channelId;
     }
 
-    public boolean isChannelLive(String channelId) throws IOException, JSONException {
+    public static boolean isChannelLive(String channelId) throws IOException, JSONException {
         HttpGet httpGet = createHttpGet(CHANNEL_STREAM + channelId);
         CloseableHttpResponse response = httpClient.client.execute(httpGet);
         HttpEntity entity = response.getEntity();

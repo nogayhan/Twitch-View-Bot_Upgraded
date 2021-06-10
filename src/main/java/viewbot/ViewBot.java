@@ -45,11 +45,8 @@ public class ViewBot {
     private LinkedBlockingQueue<String> proxyQueue;
     private String target;
     private final ControllerMain controllerMain;
-    private final TwitchUtil twitchUtil = new TwitchUtil();
 
     private int threads;
-
-    private Thread waitingThread;
 
     public ViewBot(ControllerMain controllerMain, LinkedBlockingQueue<String> proxyQueue, String target) {
         this.controllerMain = controllerMain;
@@ -57,45 +54,10 @@ public class ViewBot {
         this.target = target;
     }
 
-    private void writeToLog(String msg) {
+    void writeToLog(String msg) {
         Platform.runLater(() ->
                 controllerMain.writeToLog(msg)
         );
-    }
-
-    public void prepareToStart() {
-        if (Config.startWhenLiveValue) {
-            try {
-                String channelId = twitchUtil.getChannelId(target);
-                Runnable waitingRunnable = getWaitingRunnable(channelId);
-                waitingThread = new Thread(waitingRunnable);
-                waitingThread.start();
-            } catch (Exception e) {
-                Thread.currentThread().interrupt();
-                writeToLog("Failed to get channel status");
-            }
-        }
-    }
-
-    private Runnable getWaitingRunnable(String channelId) {
-        return () -> {
-            synchronized (this) {
-                while (true) {
-                    try {
-                        if (Thread.currentThread().isInterrupted()) break;
-                        writeToLog("Waiting when channel goes live");
-                        if (twitchUtil.isChannelLive(channelId)) break;
-                    } catch (IOException e) {
-                        writeToLog("Can't get channel status");
-                    }
-                    try {
-                        wait((long) Config.repeatEveryMinutesValue * 1000 * 60);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                }
-            }
-        };
     }
 
 
@@ -110,7 +72,7 @@ public class ViewBot {
                 Thread.sleep((long) Config.stopAfterHsValue * 1000 * 60 * 60);
             } else {
                 while (controllerMain.getStartButton().getText().equals("START")) {
-                    if (!twitchUtil.isChannelLive(target)) break;
+                    if (!TwitchUtil.isChannelLive(target)) break;
                     Thread.sleep(2000);
                 }
             }
@@ -164,9 +126,7 @@ public class ViewBot {
 
 
     public void stop() {
-        if (waitingThread.isAlive()) {
-            waitingThread.interrupt();
-        } else if (threadPool != null) {
+        if (threadPool != null) {
             new Thread(() -> {
                 writeToLog("Shutdowning threads...");
                 writeToLog("Wait until console has been not cleared");
@@ -248,5 +208,9 @@ public class ViewBot {
     public ViewBot setProxyQueue(LinkedBlockingQueue<String> proxyQueue) {
         this.proxyQueue = proxyQueue;
         return this;
+    }
+
+    public String getTarget() {
+        return target;
     }
 }

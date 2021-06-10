@@ -6,6 +6,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import viewbot.StartThread;
 import viewbot.ViewBot;
 
 import java.io.BufferedReader;
@@ -18,6 +19,8 @@ public class ControllerMain {
     private static final FileChooser fileChooser = new FileChooser();
     private ViewBot viewBot;
     private LinkedBlockingQueue<String> proxyQueue = new LinkedBlockingQueue<>();
+
+    private StartThread startThread;
 
     static {
         fileChooser.setTitle("Choose proxy file");
@@ -81,18 +84,11 @@ public class ControllerMain {
                 return;
             }
             channelNameField.getStyleClass().remove("error");
-
+            startButton.setText("STOP");
             viewBot = new ViewBot(this, proxyQueue, target);
             viewBot.setThreads(Integer.parseInt(labelViewers.getText()));
-            Thread prepareToStartThread = new Thread(viewBot::prepareToStart);
-            startButton.setText("STOP");
-            prepareToStartThread.start();
-            try {
-                prepareToStartThread.join();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            Thread startThread = new Thread(viewBot::start);
+
+            startThread = new StartThread(viewBot);
             startThread.start();
         }
     }
@@ -104,6 +100,7 @@ public class ControllerMain {
     @FXML
     public void stopViewBot() {
         if (viewBot != null) {
+            StartThread.currentThread().interrupt();
             startButton.setText("START");
             resetCount();
             cleanLogArea();
