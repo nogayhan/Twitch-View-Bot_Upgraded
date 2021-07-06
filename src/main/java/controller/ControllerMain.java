@@ -16,6 +16,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class ControllerMain {
     private static final FileChooser fileChooser = new FileChooser();
+    public static final int msInSeconds = 1000 * 60;
     private ViewBot viewBot;
     private LinkedBlockingQueue<String> proxyQueue = new LinkedBlockingQueue<>();
 
@@ -85,7 +86,7 @@ public class ControllerMain {
             viewBot = new ViewBot(this, proxyQueue, target);
             int amountOfThreads = Integer.parseInt(labelViewers.getText());
             viewBot.setThreads(amountOfThreads);
-            viewBot.setRequestDelay(1000 * 60 / amountOfThreads);
+            viewBot.setRequestDelay(msInSeconds / amountOfThreads);
             Thread prepareToStartThread = new Thread(viewBot::prepareToStart);
             startButton.setText("STOP");
             prepareToStartThread.start();

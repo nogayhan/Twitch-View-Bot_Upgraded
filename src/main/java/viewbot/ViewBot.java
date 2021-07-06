@@ -57,7 +57,7 @@ public class ViewBot {
         this.target = target;
     }
 
-    private void writeToLog(String msg) {
+    void writeToLog(String msg) {
         Platform.runLater(() ->
                 controllerMain.writeToLog(msg)
         );
