@@ -42,11 +42,11 @@ public class ViewBot {
 
 
     private ExecutorService threadPool;
+    private long requestDelay;
     private LinkedBlockingQueue<String> proxyQueue;
     private String target;
     private final ControllerMain controllerMain;
     private final TwitchUtil twitchUtil = new TwitchUtil();
-
     private int threads;
 
     private Thread waitingThread;
@@ -152,7 +152,9 @@ public class ViewBot {
                         viewWasSent = true;
                         Platform.runLater(controllerMain::addCount);
                     }
-                    Thread.sleep(5000);
+                    System.out.println("Amount of threads: " + threads +
+                            "Waiting after request: " + requestDelay);
+                    Thread.sleep(requestDelay);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -248,5 +250,9 @@ public class ViewBot {
     public ViewBot setProxyQueue(LinkedBlockingQueue<String> proxyQueue) {
         this.proxyQueue = proxyQueue;
         return this;
+    }
+
+    public void setRequestDelay(long requestDelay) {
+        this.requestDelay = requestDelay;
     }
 }

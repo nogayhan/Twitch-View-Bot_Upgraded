@@ -83,7 +83,9 @@ public class ControllerMain {
             channelNameField.getStyleClass().remove("error");
 
             viewBot = new ViewBot(this, proxyQueue, target);
-            viewBot.setThreads(Integer.parseInt(labelViewers.getText()));
+            int amountOfThreads = Integer.parseInt(labelViewers.getText());
+            viewBot.setThreads(amountOfThreads);
+            viewBot.setRequestDelay(1000 * 60 / amountOfThreads);
             Thread prepareToStartThread = new Thread(viewBot::prepareToStart);
             startButton.setText("STOP");
             prepareToStartThread.start();
