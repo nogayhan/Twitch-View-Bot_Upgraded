@@ -23,7 +23,7 @@ public class TwitchUtil {
     private static final HttpClient httpClient = new HttpClient();
 
 
-    private TwitchUtil() {}
+    public TwitchUtil() {}
 
     public static HttpGet createHttpGet(String url) {
         HttpGet httpGet = new HttpGet(url);
