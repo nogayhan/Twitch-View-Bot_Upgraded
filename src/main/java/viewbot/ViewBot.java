@@ -16,11 +16,9 @@ import utils.HttpClient;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Queue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 import static service.TwitchUtil.CLIENT_ID;
 
@@ -45,15 +43,17 @@ public class ViewBot {
     private long requestDelay;
     private LinkedBlockingQueue<String> proxyQueue;
     private String target;
+    private String targetChannelId;
     private final ControllerMain controllerMain;
     private int threads;
 
     private Thread waitingThread;
 
-    public ViewBot(ControllerMain controllerMain, LinkedBlockingQueue<String> proxyQueue, String target) {
+    public ViewBot(ControllerMain controllerMain, LinkedBlockingQueue<String> proxyQueue, String target) throws IOException {
         this.controllerMain = controllerMain;
         this.proxyQueue = proxyQueue;
         this.target = target;
+        this.targetChannelId = TwitchUtil.getChannelId(target);
     }
 
     void writeToLog(String msg) {
@@ -65,8 +65,7 @@ public class ViewBot {
     public void prepareToStart() {
         if (Config.startWhenLiveValue) {
             try {
-                String channelId = TwitchUtil.getChannelId(target);
-                Runnable waitingRunnable = getWaitingRunnable(channelId);
+                Runnable waitingRunnable = getWaitingRunnable(targetChannelId);
                 waitingThread = new Thread(waitingRunnable);
                 waitingThread.start();
             } catch (Exception e) {
@@ -100,16 +99,48 @@ public class ViewBot {
 
     public void start() {
         threadPool = Executors.newScheduledThreadPool(threads);
+        ExecutorService loadExecutor = Executors.newCachedThreadPool();
         writeToLog("Viewbot has been started with: " + threads + " threads");
+        Deque<Future<ViewRunnable>> viewRunnableQueue = new ArrayDeque<>();
+
+        for (int i = 0; i < threads; i++) {
+            Future<ViewRunnable> viewRunnableFuture = loadExecutor.submit(() -> {
+                try {
+                    return getViewRunnable();
+                } catch (IOException e) {
+                    writeToLog("Bad/slow proxy. Continuing...");
+                }
+                return null;
+            });
+            viewRunnableQueue.add(viewRunnableFuture);
+        }
+
         try {
-            for (int i = 0; i < threads; i++) {
-                threadPool.scheduleWithFixedDelay(getViewRunnable(), 0, requestDelay, TimeUnit.MILLISECONDS);
+            writeToLog("Preparing threads to work");
+            if (!loadExecutor.awaitTermination(60000, TimeUnit.MILLISECONDS)) {
+                writeToLog("All threads are ready");
             }
+
+            List<ViewRunnable> runnableList = viewRunnableQueue.stream()
+                    .filter(Objects::nonNull)
+                    .filter(Future::isDone).map(viewRunnableFuture -> {
+                try {
+                    return viewRunnableFuture.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    Thread.currentThread().interrupt();
+                }
+                return null;
+            }).filter(Objects::nonNull).collect(Collectors.toList());
+
+            for (ViewRunnable runnable : runnableList) {
+                threadPool.scheduleWithFixedDelay(runnable, 0, requestDelay, TimeUnit.MILLISECONDS);
+            }
+
             if (!Config.stopWhenOfflineValue) {
                 Thread.sleep((long) Config.stopAfterHsValue * 1000 * 60 * 60);
             } else {
-                while (controllerMain.getStartButton().getText().equals("START")) {
-                    if (!TwitchUtil.isChannelLive(target)) break;
+                while (controllerMain.getStartButton().getText().equals("STOP")) {
+                    if (!TwitchUtil.isChannelLive(targetChannelId)) break;
                     Thread.sleep(2000);
                 }
             }
@@ -166,22 +197,8 @@ public class ViewBot {
         client.client.execute(headRequest);
     }
 
-    public Queue<String> getProxyQueue() {
-        return proxyQueue;
-    }
-
     public void setThreads(int threads) {
         this.threads = threads;
-    }
-
-    public ViewBot setTarget(String target) {
-        this.target = target;
-        return this;
-    }
-
-    public ViewBot setProxyQueue(LinkedBlockingQueue<String> proxyQueue) {
-        this.proxyQueue = proxyQueue;
-        return this;
     }
 
     public void setRequestDelay(long requestDelay) {
@@ -215,9 +232,11 @@ public class ViewBot {
 
         @Override
         public void run() {
+            System.out.println("In run with ip: " + ip + ":" + port);
             try {
                 String videoSequenceURL = getVideoSequence(httpClient, liveStreamObj.getToken(), liveStreamObj.getSig());
                 if (!videoSequenceURL.isEmpty()) {
+                    sendView(httpClient, videoSequenceURL);
                     Platform.runLater(controllerMain::addCount);
                 }
             } catch (IOException | JSONException e) {
@@ -248,7 +267,6 @@ public class ViewBot {
 
         private String getVideoSequence(HttpClient client, String token, String sig) throws IOException {
             String url = String.format(GET_VIDEO, target, sig, token);
-            System.out.println(url);
             HttpGet getRequest = new HttpGet(url);
             getRequest.setHeader(HttpHeaders.USER_AGENT, USER_AGENT);
             getRequest.setHeader(HttpHeaders.ACCEPT, ACCEPT_VIDEO);

@@ -66,7 +66,7 @@ public class ControllerMain {
 
 
     @FXML
-    private void start() {
+    private void start() throws IOException {
         if (!startButton.getText().equals("START")) {
             viewBot.stop();
             startButton.setText("START");
